@@ -10,7 +10,19 @@
       "tsconfigPaths": true
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow site-check to access your location to verify attendance."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow camera to take a selfie for attendance verification."
+        }
+      ]
     ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,12 +36,33 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to verify you are at the work site for attendance.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take a selfie for attendance verification."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "package": "com.mahesh_1412.myexpoapp",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyATShdfyn7SocR1Tmun2YaPUYDpuIQrX58"
+        }
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "21439d70-4f51-462a-81b0-32e7c95f9cd5"
       }
     }
   }

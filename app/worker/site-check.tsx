@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ActivityIndicator, Alert, TouchableOpacity, Dimensions } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -40,34 +40,62 @@ export default function SiteCheckScreen() {
     const [distance, setDistance] = useState<number | null>(null);
     const [isWithinRange, setIsWithinRange] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const subscription = useRef<Location.LocationSubscription | null>(null);
 
     useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                setErrorMsg('Permission to access location was denied');
-                setIsLoading(false);
-                return;
-            }
+        let isActive = true;
 
-            // Watch Position for Real-time updates
-            await Location.watchPositionAsync({
-                accuracy: Location.Accuracy.High,
-                timeInterval: 1000,
-                distanceInterval: 1,
-            }, (newLoc) => {
-                setLocation(newLoc);
-                const dist = getDistanceFromLatLonInM(
-                    newLoc.coords.latitude,
-                    newLoc.coords.longitude,
-                    siteLat,
-                    siteLong
-                );
-                setDistance(dist);
-                setIsWithinRange(dist <= siteRadius);
-                setIsLoading(false);
-            });
+        (async () => {
+            try {
+                let { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    if (isActive) {
+                        setErrorMsg('Permission to access location was denied');
+                        setIsLoading(false);
+                    }
+                    return;
+                }
+
+                // Check for NaN params and handle gracefully
+                if (isNaN(siteLat) || isNaN(siteLong)) {
+                    Alert.alert("Error", "Invalid site coordinates. Please contact admin.");
+                    router.back();
+                    return;
+                }
+
+                // Watch Position for Real-time updates
+                subscription.current = await Location.watchPositionAsync({
+                    accuracy: Location.Accuracy.Balanced, // Balanced is safer for some devices
+                    timeInterval: 2000,
+                    distanceInterval: 1,
+                }, (newLoc) => {
+                    if (!isActive) return;
+                    setLocation(newLoc);
+                    const dist = getDistanceFromLatLonInM(
+                        newLoc.coords.latitude,
+                        newLoc.coords.longitude,
+                        siteLat,
+                        siteLong
+                    );
+                    setDistance(dist);
+                    setIsWithinRange(dist <= siteRadius);
+                    setIsLoading(false);
+                });
+            } catch (err) {
+                console.error("Location error:", err);
+                if (isActive) {
+                    Alert.alert("GPS Error", "Failed to get your location. Please check your GPS settings.");
+                    setIsLoading(false);
+                }
+            }
         })();
+
+        return () => {
+            isActive = false;
+            if (subscription.current) {
+                subscription.current.remove();
+            }
+        };
     }, []);
 
     if (isLoading || !location) {

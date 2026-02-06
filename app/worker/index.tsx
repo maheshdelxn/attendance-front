@@ -78,14 +78,20 @@ export default function WorkerHome() {
             return;
         }
 
+        // Validate site location data before navigating
+        if (!selectedSite.location?.lat || !selectedSite.location?.lng) {
+            Alert.alert("Data Error", "This site's location is not properly configured. Please contact admin.");
+            return;
+        }
+
         router.push({
             pathname: '/worker/site-check',
             params: {
-                siteId: selectedSite._id,
-                siteName: selectedSite.name,
-                lat: selectedSite.location.lat,
-                long: selectedSite.location.lng,
-                radius: selectedSite.radius
+                siteId: selectedSite._id || selectedSite.id,
+                siteName: selectedSite.name || 'Site',
+                lat: selectedSite.location.lat.toString(),
+                long: selectedSite.location.lng.toString(),
+                radius: (selectedSite.radius || 100).toString()
             }
         });
     };
@@ -203,26 +209,30 @@ export default function WorkerHome() {
 
                 {/* Main Action */}
                 <View className="items-center mb-12">
-                    {!status?.punchedIn ? (
-                        <>
-                            <TouchableOpacity
-                                onPress={handlePunchIn}
-                                disabled={!selectedSite}
-                                className={`w-48 h-48 rounded-full items-center justify-center shadow-xl border-8 border-white ${!selectedSite ? 'bg-gray-300' : 'bg-primary'}`}
-                                style={{ shadowColor: '#FFD700', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }}
-                            >
-                                <Ionicons name="finger-print" size={48} color={!selectedSite ? '#666' : '#1A1A1A'} />
-                                <Text className={`font-bold text-lg mt-2 uppercase ${!selectedSite ? 'text-gray-500' : 'text-secondary'}`}>Mark In</Text>
-                            </TouchableOpacity>
-                            <Text className="text-secondary/60 text-sm mt-6 font-medium">Tap to verify location & selfie</Text>
-                        </>
+                    <TouchableOpacity
+                        onPress={handlePunchIn}
+                        disabled={!selectedSite || !!status?.punchedIn}
+                        className={`w-48 h-48 rounded-full items-center justify-center shadow-xl border-8 border-white ${(!selectedSite || !!status?.punchedIn) ? 'bg-gray-300' : 'bg-primary'}`}
+                        style={{ shadowColor: (!selectedSite || !!status?.punchedIn) ? '#999' : '#FFD700', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }}
+                    >
+                        {status?.punchedIn ? (
+                            <Ionicons name="checkmark-done" size={48} color="#4CAF50" />
+                        ) : (
+                            <Ionicons name="finger-print" size={48} color={!selectedSite ? '#666' : '#1A1A1A'} />
+                        )}
+                        <Text className={`font-bold text-lg mt-2 uppercase ${(!selectedSite || !!status?.punchedIn) ? 'text-gray-500' : 'text-secondary'}`}>
+                            {status?.punchedIn ? 'Punched In' : 'Mark In'}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {status?.punchedIn ? (
+                        <Text className="text-success text-sm mt-6 font-bold text-center">
+                            You've completed your attendance for today!
+                        </Text>
                     ) : (
-                        <View className="items-center mt-4">
-                            <View className="w-16 h-16 bg-green-50 rounded-full items-center justify-center mb-4">
-                                <Ionicons name="checkmark-done-circle" size={40} color="#4CAF50" />
-                            </View>
-                            <Text className="text-secondary/60 text-center font-medium">You have completed your attendance for today at {status.siteName}.</Text>
-                        </View>
+                        <Text className="text-secondary/60 text-sm mt-6 font-medium">
+                            {selectedSite ? 'Tap to verify location & selfie' : 'Please select a site first'}
+                        </Text>
                     )}
                 </View>
 

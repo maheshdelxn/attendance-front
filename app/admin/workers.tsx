@@ -50,7 +50,8 @@ export default function WorkerManagement() {
     };
 
     const filteredWorkers = (workers || []).filter(worker => {
-        const matchesSearch = worker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        if (!worker) return false;
+        const matchesSearch = (worker.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (worker.mobile || '').includes(searchQuery);
         const matchesStatus = filterStatus === 'ALL' || worker.status === filterStatus;
         return matchesSearch && matchesStatus;

@@ -126,8 +126,17 @@ export default function SitesManagement() {
     };
 
     const handleSaveSite = async () => {
-        if (!siteName || !siteLat || !siteLong || !siteRadius) {
-            Alert.alert("Error", "Please fill all required fields");
+        const lat = parseFloat(siteLat);
+        const lng = parseFloat(siteLong);
+        const radius = parseInt(siteRadius);
+
+        if (isNaN(lat) || isNaN(lng)) {
+            Alert.alert("Error", "Latitude and Longitude must be valid numbers");
+            return;
+        }
+
+        if (isNaN(radius)) {
+            Alert.alert("Error", "Radius must be a valid number");
             return;
         }
 
@@ -135,9 +144,9 @@ export default function SitesManagement() {
         try {
             const siteData = {
                 name: siteName,
-                lat: parseFloat(siteLat) || 0,
-                lng: parseFloat(siteLong) || 0,
-                radius: parseInt(siteRadius) || 200,
+                lat: lat,
+                lng: lng,
+                radius: radius,
                 shiftStart: shiftStart || '09:00',
                 buffer: parseInt(bufferProps) || 30
             };

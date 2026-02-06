@@ -97,7 +97,15 @@ export default function CameraScreen() {
             await api.markAttendance(formData);
 
             setIsProcessing(false);
-            router.replace('/worker/success'); // Create this or ensure it exists
+            const now = new Date();
+            router.replace({
+                pathname: '/worker/success',
+                params: {
+                    siteName,
+                    date: now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+                    time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }
+            });
         } catch (error: any) {
             setIsProcessing(false);
             console.error(error);
@@ -117,8 +125,8 @@ export default function CameraScreen() {
                         </View>
                     )}
                     <View className="flex-row gap-4">
-                        <Button title="Retake" variant="outline" onPress={() => setPhoto(null)} style={{ flex: 1, borderColor: 'white' }} textStyle={{ color: 'white' }} />
-                        <Button title="Submit" onPress={confirmAttendance} isLoading={isProcessing} style={{ flex: 1 }} />
+                        <Button title="Retake" variant="outline" onPress={() => setPhoto(null)} className="flex-1 border-white" />
+                        <Button title="Submit" onPress={confirmAttendance} isLoading={isProcessing} className="flex-1" />
                     </View>
                 </View>
             </View>

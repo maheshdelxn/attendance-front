@@ -12,8 +12,9 @@ import Constants from 'expo-constants';
 const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || '';
 const localhost = debuggerHost.split(':')[0];
 
+const BASE_URL = 'https://attendance-back-sepia.vercel.app/api';
 // const LOCAL_IP = '192.168.1.20';
-const BASE_URL = 'https://attendance-back-sigma.vercel.app/api';
+// const BASE_URL = `http://${LOCAL_IP}:3000/api`;
 
 export const getBoxUrl = () => BASE_URL;
 
@@ -65,6 +66,23 @@ export const api = {
         return headers;
     },
 
+    // HELPER: Handle response robustly
+    handleResponse: async (res: Response) => {
+        const contentType = res.headers.get('content-type');
+        let data;
+
+        if (contentType && contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            data = { message: await res.text() };
+        }
+
+        if (!res.ok) {
+            throw new Error(data.message || data.error || `Request failed with status ${res.status}`);
+        }
+        return data;
+    },
+
     // AUTH
     register: async (userData: any) => {
         const res = await fetch(`${BASE_URL}/auth/register`, {
@@ -72,9 +90,7 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || 'Registration failed');
-        return data;
+        return api.handleResponse(res);
     },
 
     login: async (mobile: string, password: string) => {
@@ -83,9 +99,7 @@ export const api = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ mobile, password }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || 'Login failed');
-        return data; // { token, user: { id, name, role... } }
+        return api.handleResponse(res);
     },
 
     // SITES
@@ -96,9 +110,7 @@ export const api = {
             headers,
             body: JSON.stringify(siteData),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || 'Failed to create site');
-        return data;
+        return api.handleResponse(res);
     },
 
     getSites: async () => {
@@ -107,7 +119,7 @@ export const api = {
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const res = await fetch(`${BASE_URL}/sites`, { headers });
-        return res.json();
+        return api.handleResponse(res);
     },
 
     deleteSite: async (id: string) => {
@@ -116,9 +128,7 @@ export const api = {
             method: 'DELETE',
             headers,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || 'Failed to delete site');
-        return data;
+        return api.handleResponse(res);
     },
 
     updateSite: async (id: string, siteData: any) => {
@@ -128,22 +138,20 @@ export const api = {
             headers,
             body: JSON.stringify(siteData),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || 'Failed to update site');
-        return data;
+        return api.handleResponse(res);
     },
 
     // REPORTS
     getDashboardStats: async () => {
         const headers = await api.getHeaders();
         const res = await fetch(`${BASE_URL}/reports/dashboard`, { headers });
-        return res.json();
+        return api.handleResponse(res);
     },
 
     getSummaryReport: async (period: string, siteId: string) => {
         const headers = await api.getHeaders();
         const res = await fetch(`${BASE_URL}/reports/summary?period=${period}&siteId=${siteId}`, { headers });
-        return res.json();
+        return api.handleResponse(res);
     },
 
     // ATTENDANCE
@@ -154,35 +162,33 @@ export const api = {
             headers,
             body: formData,
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || result.error || 'Attendance failed');
-        return result;
+        return api.handleResponse(res);
     },
 
     getAttendanceStatus: async (userId: string) => {
         const headers = await api.getHeaders();
         const res = await fetch(`${BASE_URL}/attendance/status/${userId}`, { headers });
         if (res.status === 404) return null;
-        return res.json();
+        return api.handleResponse(res);
     },
 
     getAttendanceHistory: async (userId: string) => {
         const headers = await api.getHeaders();
         const res = await fetch(`${BASE_URL}/attendance/history/${userId}`, { headers });
-        return res.json();
+        return api.handleResponse(res);
     },
 
     getAttendanceLogs: async () => {
         const headers = await api.getHeaders();
         const res = await fetch(`${BASE_URL}/attendance/logs`, { headers });
-        return res.json();
+        return api.handleResponse(res);
     },
 
     // WORKERS
     getWorkers: async () => {
         const headers = await api.getHeaders();
         const res = await fetch(`${BASE_URL}/users/workers`, { headers });
-        return res.json();
+        return api.handleResponse(res);
     },
 
     updateWorker: async (id: string, data: any) => {
@@ -192,9 +198,7 @@ export const api = {
             headers,
             body: JSON.stringify(data),
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || result.error || 'Failed to update worker');
-        return result;
+        return api.handleResponse(res);
     },
 
     toggleWorkerStatus: async (id: string) => {
@@ -203,8 +207,6 @@ export const api = {
             method: 'PATCH',
             headers,
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || result.error || 'Failed to toggle status');
-        return result;
+        return api.handleResponse(res);
     }
 };
