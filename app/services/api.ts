@@ -1,20 +1,17 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
+import { ToastManager } from '../../context/ToastContext';
 
 // ----------------------------------------------------------------------
 // 🌍 API CONFIGURATION
 // ----------------------------------------------------------------------
-// ⚠️ IF USING PHYSICAL DEVICE: Replace this with your PC's Local IP (e.g. http://192.168.1.5:5000/api)
-// 🤖 IF USING ANDROID EMULATOR: Use http://10.0.2.2:5000/api
-import Constants from 'expo-constants';
-
-// Get the IP address of the machine running the packager (likely your PC)
 const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || '';
 const localhost = debuggerHost.split(':')[0];
 
-const BASE_URL = 'https://attendance-back-sepia.vercel.app/api';
-// const LOCAL_IP = '192.168.1.20';
-// const BASE_URL = `http://${LOCAL_IP}:3000/api`;
+// Use manual IP as fallback if debugger IP is not available
+const LOCAL_IP = '192.168.1.14';
+const BASE_URL = `http://${localhost || LOCAL_IP}:3000/api`;
 
 export const getBoxUrl = () => BASE_URL;
 
@@ -49,6 +46,11 @@ export const clearAuthData = async () => {
 };
 
 // ----------------------------------------------------------------------
+// 🔑 CACHE KEYS
+// ----------------------------------------------------------------------
+const HISTORY_CACHE_PREFIX = 'cache_history_';
+
+// ----------------------------------------------------------------------
 // 📡 API CALLS
 // ----------------------------------------------------------------------
 export const api = {
@@ -78,7 +80,9 @@ export const api = {
         }
 
         if (!res.ok) {
-            throw new Error(data.message || data.error || `Request failed with status ${res.status}`);
+            const errorMsg = data.message || data.error || `Request failed with status ${res.status}`;
+            ToastManager.error(errorMsg);
+            throw new Error(errorMsg);
         }
         return data;
     },
@@ -172,10 +176,29 @@ export const api = {
         return api.handleResponse(res);
     },
 
-    getAttendanceHistory: async (userId: string) => {
+    getAttendanceHistory: async (userId: string, month?: number, year?: number) => {
+        const cacheKey = `${HISTORY_CACHE_PREFIX}${userId}_${month}_${year}`;
         const headers = await api.getHeaders();
-        const res = await fetch(`${BASE_URL}/attendance/history/${userId}`, { headers });
-        return api.handleResponse(res);
+        let url = `${BASE_URL}/attendance/history/${userId}`;
+        if (month && year) {
+            url += `?month=${month}&year=${year}`;
+        }
+
+        try {
+            const res = await fetch(url, { headers });
+            const data = await api.handleResponse(res);
+            // Save to cache for offline use
+            await SecureStore.setItemAsync(cacheKey, JSON.stringify(data));
+            return data;
+        } catch (error) {
+            // Try loading from cache if network fails
+            const cachedData = await SecureStore.getItemAsync(cacheKey);
+            if (cachedData) {
+                ToastManager.show('Viewing offline data', 'info');
+                return JSON.parse(cachedData);
+            }
+            throw error;
+        }
     },
 
     getAttendanceLogs: async () => {

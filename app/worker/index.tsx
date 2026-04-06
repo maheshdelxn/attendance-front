@@ -20,7 +20,11 @@ export default function WorkerHome() {
             const [sitesData, statusData, historyData] = await Promise.all([
                 api.getSites(),
                 user?.id ? api.getAttendanceStatus(user.id) : null,
-                user?.id ? api.getAttendanceHistory(user.id) : []
+                user?.id ? api.getAttendanceHistory(
+                    user.id,
+                    new Date().getMonth() + 1,
+                    new Date().getFullYear()
+                ) : []
             ]);
             setSites(sitesData || []);
             setStatus(statusData);
