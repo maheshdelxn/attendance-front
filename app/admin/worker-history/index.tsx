@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { getCurrentMonthIST, getCurrentYearIST, formatDisplayDate, formatDisplayTime } from '../../utils/time';
 import Skeleton from '../../../components/common/Skeleton';
 
 export default function WorkerHistoryScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { id, name, role } = useLocalSearchParams();
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -75,47 +77,69 @@ export default function WorkerHistoryScreen() {
     };
 
     return (
-        <View className="flex-1 bg-gray-50">
-            {/* Header */}
-            <View className="bg-white px-6 pt-14 pb-6 shadow-sm">
+        <View className="flex-1 bg-background">
+            {/* Header with Safe Area Insets */}
+            <View
+                style={{ paddingTop: Math.max(insets.top + 12, 20) }}
+                className="bg-white px-6 pb-4 shadow-sm border-b border-gray-200"
+            >
                 <View className="flex-row items-center justify-between">
-                    <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-                        <Ionicons name="arrow-back" size={24} color="#1F2937" />
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center border border-gray-200"
+                    >
+                        <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
                     </TouchableOpacity>
-                    <View className="items-center">
-                        <Text className="text-secondary font-bold text-lg">{name}</Text>
-                        <Text className="text-secondary/60 text-xs font-medium uppercase tracking-wider">{role}</Text>
+                    <View className="items-center flex-1 mx-2">
+                        <Text className="text-secondary font-extrabold text-lg text-center" numberOfLines={1}>
+                            {name || 'Worker Track'}
+                        </Text>
+                        <Text className="text-secondary/70 text-xs font-bold uppercase tracking-wider">{role || 'Worker'}</Text>
                     </View>
                     <View className="w-10" />
                 </View>
             </View>
 
             <ScrollView
-                className="flex-1 px-6"
+                className="flex-1 px-5"
+                contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+                showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#FFD700"]} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1A1A1A"]} />
                 }
             >
                 {/* Month Selector */}
-                <View className="bg-white mt-6 p-4 rounded-2xl shadow-sm border border-gray-100 flex-row items-center justify-between">
-                    <TouchableOpacity onPress={() => handleMonthChange('prev')} className="p-2 border border-blue-50 bg-blue-50/30 rounded-full">
+                <View className="bg-white mt-5 p-4 rounded-2xl shadow-sm border border-gray-200 flex-row items-center justify-between">
+                    <TouchableOpacity
+                        onPress={() => handleMonthChange('prev')}
+                        className="w-10 h-10 border border-blue-200 bg-blue-50 rounded-full items-center justify-center"
+                    >
                         <Ionicons name="chevron-back" size={20} color="#2563EB" />
                     </TouchableOpacity>
 
                     <View className="items-center">
-                        <Text className="text-secondary font-bold text-base">{getMonthName(selectedMonth)}</Text>
-                        <Text className="text-secondary/40 text-[10px] font-bold uppercase">{selectedYear}</Text>
+                        <Text className="text-secondary font-extrabold text-lg">{getMonthName(selectedMonth)}</Text>
+                        <Text className="text-secondary/70 text-xs font-extrabold uppercase mt-0.5">{selectedYear}</Text>
                     </View>
 
-                    <TouchableOpacity onPress={() => handleMonthChange('next')} className="p-2 border border-blue-50 bg-blue-50/30 rounded-full">
+                    <TouchableOpacity
+                        onPress={() => handleMonthChange('next')}
+                        className="w-10 h-10 border border-blue-200 bg-blue-50 rounded-full items-center justify-center"
+                    >
                         <Ionicons name="chevron-forward" size={20} color="#2563EB" />
                     </TouchableOpacity>
                 </View>
 
                 {/* History List */}
-                <View className="mt-8 mb-10">
-                    <Text className="text-secondary font-bold text-lg mb-4">Detailed Track</Text>
-                    <View className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <View className="mt-6 mb-10">
+                    <View className="flex-row items-center justify-between mb-3">
+                        <Text className="text-secondary font-extrabold text-base">Monthly Attendance Log</Text>
+                        <View className="bg-blue-100 px-2.5 py-0.5 rounded-full">
+                            <Text className="text-blue-700 text-xs font-bold">{history.length} Days Logged</Text>
+                        </View>
+                    </View>
+
+                    <View className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         {loading && !refreshing ? (
                             <View className="p-4">
                                 {[1, 2, 3, 4, 5].map((i) => (
@@ -135,34 +159,36 @@ export default function WorkerHistoryScreen() {
                                 ))}
                             </View>
                         ) : history.length === 0 ? (
-                            <View className="p-10 items-center">
-                                <Ionicons name="documents-outline" size={48} color="#CCC" />
-                                <Text className="text-secondary/40 font-medium mt-2">No history recorded yet.</Text>
+                            <View className="p-12 items-center justify-center">
+                                <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
+                                <Text className="text-secondary/70 font-semibold text-sm mt-3 text-center">
+                                    No attendance records for {getMonthName(selectedMonth)} {selectedYear}.
+                                </Text>
                             </View>
                         ) : (
                             history.map((record: any, index: number) => (
                                 <View
-                                    key={record._id}
-                                    className={`p-4 flex-row justify-between items-center ${index !== history.length - 1 ? 'border-b border-gray-50' : ''}`}
+                                    key={record._id || index}
+                                    className={`p-4 flex-row justify-between items-center ${index !== history.length - 1 ? 'border-b border-gray-100' : ''}`}
                                 >
-                                    <View className="flex-row items-center gap-4">
-                                        <View className="bg-blue-50 w-10 h-10 rounded-full items-center justify-center">
+                                    <View className="flex-row items-center gap-3">
+                                        <View className="bg-blue-50 w-10 h-10 rounded-full items-center justify-center border border-blue-100">
                                             <Ionicons name="calendar" size={18} color="#2563EB" />
                                         </View>
                                         <View>
-                                            <Text className="text-secondary font-bold text-sm">
-                                                {formatDisplayDate(record.date)}
+                                            <Text className="text-secondary font-extrabold text-sm">
+                                                {formatDisplayDate(record.date || record.checkInTime)}
                                             </Text>
-                                            <Text className="text-secondary/60 text-xs">
-                                                {record.site?.name || 'Multiple Sites'}
+                                            <Text className="text-secondary/70 text-xs font-semibold">
+                                                {record.site?.name || 'Assigned Site'}
                                             </Text>
                                         </View>
                                     </View>
                                     <View className="items-end">
-                                        <Text className="text-secondary font-bold text-sm">
+                                        <Text className="text-secondary font-extrabold text-sm">
                                             {formatDisplayTime(record.checkInTime)}
                                         </Text>
-                                        <Text className="text-success text-[10px] font-bold uppercase">Punch-in</Text>
+                                        <Text className="text-success text-[10px] font-extrabold uppercase">Punch-In</Text>
                                     </View>
                                 </View>
                             ))

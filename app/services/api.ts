@@ -10,8 +10,8 @@ const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest2?.extra
 const localhost = debuggerHost.split(':')[0];
 
 // Use manual IP as fallback if debugger IP is not available
-const LOCAL_IP = '192.168.1.14';
-const BASE_URL = `http://${localhost || LOCAL_IP}:3000/api`;
+const LOCAL_IP = '192.168.1.10';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || `http://${localhost || LOCAL_IP}:3000/api`;
 
 export const getBoxUrl = () => BASE_URL;
 

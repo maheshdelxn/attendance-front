@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { api } from '../services/api';
@@ -8,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { login } = useAuth();
     const [mode, setMode] = useState<'login' | 'signup'>('login');
     const [loginStep, setLoginStep] = useState<'mobile' | 'password'>('mobile');
@@ -92,25 +94,59 @@ export default function LoginScreen() {
 
     return (
         <View className="flex-1 bg-background">
-            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
-                <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-                    <View className="h-[30%] bg-primary items-center justify-center rounded-b-[40px] shadow-lg mb-8 pt-10">
-                        <View className="w-20 h-20 bg-white rounded-full items-center justify-center mb-4 shadow-sm border-2 border-secondary">
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                className="flex-1"
+            >
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 24 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    {/* Brand Banner */}
+                    <View
+                        style={{ paddingTop: Math.max(insets.top + 16, 32) }}
+                        className="bg-primary items-center justify-center rounded-b-[40px] shadow-md pb-8 px-6 mb-6"
+                    >
+                        <View className="w-20 h-20 bg-white rounded-full items-center justify-center mb-3 shadow-md border-2 border-secondary">
                             <Text className="text-4xl">👷</Text>
                         </View>
-                        <Text className="text-3xl font-bold text-secondary">BuildSafe</Text>
-                        <Text className="text-secondary/70 font-medium">{mode === 'login' ? 'Secure Login' : 'New Account'}</Text>
+                        <Text className="text-3xl font-extrabold text-secondary tracking-tight">BuildSafe</Text>
+                        <Text className="text-secondary font-bold text-sm mt-0.5 opacity-80">
+                            {mode === 'login' ? 'Worker & Admin Portal' : 'New Worker Registration'}
+                        </Text>
+
+                        {/* Top Segmented Switcher for Clean UX */}
+                        <View className="flex-row bg-secondary/10 p-1 rounded-full mt-5 w-64">
+                            <TouchableOpacity
+                                onPress={() => { setMode('login'); resetForm(); }}
+                                className={`flex-1 py-1.5 rounded-full items-center ${mode === 'login' ? 'bg-secondary' : ''}`}
+                            >
+                                <Text className={`text-xs font-bold ${mode === 'login' ? 'text-primary' : 'text-secondary'}`}>
+                                    Sign In
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => { setMode('signup'); resetForm(); }}
+                                className={`flex-1 py-1.5 rounded-full items-center ${mode === 'signup' ? 'bg-secondary' : ''}`}
+                            >
+                                <Text className={`text-xs font-bold ${mode === 'signup' ? 'text-primary' : 'text-secondary'}`}>
+                                    Register
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
-                    <View className="px-8 flex-1">
+                    <View className="px-6 md:px-8 flex-1 justify-between">
                         {mode === 'login' && (
                             <View>
                                 {loginStep === 'mobile' ? (
                                     <>
-                                        <Text className="text-secondary text-2xl font-bold mb-6">Welcome Back</Text>
+                                        <Text className="text-secondary text-2xl font-extrabold mb-1">Welcome Back</Text>
+                                        <Text className="text-secondary/70 font-medium text-sm mb-6">Enter your registered mobile number to proceed</Text>
                                         <Input
                                             label="Mobile Number"
-                                            placeholder="Enter your 10-digit number"
+                                            placeholder="Enter 10-digit number"
                                             keyboardType="phone-pad"
                                             maxLength={10}
                                             value={mobile}
@@ -121,11 +157,14 @@ export default function LoginScreen() {
                                     </>
                                 ) : (
                                     <>
-                                        <TouchableOpacity onPress={() => setLoginStep('mobile')} className="mb-6">
-                                            <Text className="text-secondary/60 text-base font-medium">← Change Mobile Number</Text>
+                                        <TouchableOpacity
+                                            onPress={() => setLoginStep('mobile')}
+                                            className="mb-4 flex-row items-center py-1"
+                                        >
+                                            <Text className="text-secondary font-bold text-sm">← Change Mobile Number</Text>
                                         </TouchableOpacity>
-                                        <Text className="text-secondary text-2xl font-bold mb-2">Enter Password</Text>
-                                        <Text className="text-gray-500 mb-8">For +91 {mobile}</Text>
+                                        <Text className="text-secondary text-2xl font-extrabold mb-1">Enter Password</Text>
+                                        <Text className="text-secondary/70 font-medium text-sm mb-6">For mobile: +91 {mobile}</Text>
 
                                         <Input
                                             label="Password"
@@ -133,7 +172,7 @@ export default function LoginScreen() {
                                             secureTextEntry
                                             value={password}
                                             onChangeText={setPassword}
-                                            containerClassName="mb-8"
+                                            containerClassName="mb-6"
                                         />
                                         <Button title="Login" onPress={handleLoginSubmit} isLoading={isLoading} />
                                     </>
@@ -143,7 +182,8 @@ export default function LoginScreen() {
 
                         {mode === 'signup' && (
                             <View>
-                                <Text className="text-secondary text-2xl font-bold mb-6">Create Account</Text>
+                                <Text className="text-secondary text-2xl font-extrabold mb-1">Create Account</Text>
+                                <Text className="text-secondary/70 font-medium text-sm mb-6">Workers register here for site admin approval</Text>
 
                                 <Input
                                     label="Full Name"
@@ -155,7 +195,7 @@ export default function LoginScreen() {
 
                                 <Input
                                     label="Mobile Number"
-                                    placeholder="10-digit number"
+                                    placeholder="10-digit mobile number"
                                     keyboardType="phone-pad"
                                     maxLength={10}
                                     value={mobile}
@@ -164,25 +204,33 @@ export default function LoginScreen() {
                                 />
 
                                 <Input
-                                    label="Password"
-                                    placeholder="Set a strong password"
+                                    label="Set Password"
+                                    placeholder="Enter a secure password"
                                     secureTextEntry
                                     value={password}
                                     onChangeText={setPassword}
-                                    containerClassName="mb-8"
+                                    containerClassName="mb-6"
                                 />
 
-                                <Button title="Register" onPress={handleSignupSubmit} isLoading={isLoading} />
+                                <Button title="Submit Registration" onPress={handleSignupSubmit} isLoading={isLoading} />
                             </View>
                         )}
 
-                        <View className="mt-8 flex-row justify-center pb-8">
-                            <Text className="text-gray-500">{mode === 'login' ? "Don't have an account? " : "Already have an account? "}</Text>
-                            <TouchableOpacity onPress={() => {
-                                setMode(mode === 'login' ? 'signup' : 'login');
-                                resetForm();
-                            }}>
-                                <Text className="text-primary font-bold">{mode === 'login' ? 'Sign Up' : 'Login'}</Text>
+                        {/* High Contrast Bottom Switcher */}
+                        <View className="mt-8 flex-row items-center justify-center py-4">
+                            <Text className="text-secondary/80 font-medium text-sm">
+                                {mode === 'login' ? "Don't have an account? " : "Already registered? "}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setMode(mode === 'login' ? 'signup' : 'login');
+                                    resetForm();
+                                }}
+                                className="py-1 px-1"
+                            >
+                                <Text className="text-secondary font-extrabold text-sm underline">
+                                    {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>

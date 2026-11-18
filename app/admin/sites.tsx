@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import MapView, { Marker, MapPressEvent } from 'react-native-maps';
 import Button from '../../components/Button';
@@ -10,6 +11,7 @@ import { api } from '../services/api';
 
 export default function SitesManagement() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [sites, setSites] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -239,17 +241,24 @@ export default function SitesManagement() {
 
     return (
         <View className="flex-1 bg-background">
-            {/* Header */}
-            <View className="bg-white px-6 pt-16 pb-4 border-b border-gray-100 flex-row justify-between items-center">
+            {/* Header with Safe Area Insets */}
+            <View
+                style={{ paddingTop: Math.max(insets.top + 12, 20) }}
+                className="bg-white px-6 pb-4 border-b border-gray-200 flex-row justify-between items-center shadow-sm"
+            >
                 <View className="flex-row items-center gap-3">
-                    <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
-                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center border border-gray-200"
+                    >
+                        <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
                     </TouchableOpacity>
-                    <Text className="text-secondary text-2xl font-bold">Manage Sites</Text>
+                    <Text className="text-secondary text-2xl font-extrabold">Manage Sites</Text>
                 </View>
                 <TouchableOpacity
                     onPress={openAddModal}
-                    className="w-10 h-10 bg-primary rounded-full items-center justify-center shadow-lg"
+                    activeOpacity={0.8}
+                    className="w-10 h-10 bg-primary rounded-full items-center justify-center shadow-md border border-primary/20"
                 >
                     <Ionicons name="add" size={24} color="#1A1A1A" />
                 </TouchableOpacity>
@@ -259,16 +268,24 @@ export default function SitesManagement() {
             <FlatList
                 data={sites}
                 renderItem={renderSiteCard}
-                keyExtractor={item => item._id}
-                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                keyExtractor={item => item._id || item.id}
+                contentContainerStyle={{
+                    padding: 20,
+                    paddingBottom: insets.bottom + 40,
+                }}
                 showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1A1A1A"]} />}
                 ListEmptyComponent={
-                    <View className="items-center py-10">
+                    <View className="items-center py-16">
                         {loading ? (
                             <ActivityIndicator size="large" color="#FFD700" />
                         ) : (
-                            <Text className="text-secondary/40 font-medium">No sites found.</Text>
+                            <View className="items-center">
+                                <Ionicons name="business-outline" size={48} color="#9CA3AF" />
+                                <Text className="text-secondary/70 font-semibold text-sm mt-3">
+                                    No construction sites added yet. Tap + above to create one.
+                                </Text>
+                            </View>
                         )}
                     </View>
                 }
@@ -281,112 +298,122 @@ export default function SitesManagement() {
                 visible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}
             >
-                <View className="flex-1 justify-end bg-black/50">
+                <View className="flex-1 justify-end bg-black/60">
                     <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        className="flex-1 justify-end"
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        className="w-full max-h-[90%]"
                     >
-                        <View className="bg-white rounded-t-[30px] p-8 h-[80%]">
-                            <View className="flex-row justify-between items-center mb-8">
-                                <Text className="text-secondary text-2xl font-bold">
-                                    {isEditing ? 'Edit Site' : 'Add New Site'}
+                        <View className="bg-white rounded-t-[32px] p-6 shadow-2xl border-t border-gray-100">
+                            <View className="flex-row justify-between items-center mb-5">
+                                <Text className="text-secondary text-2xl font-extrabold">
+                                    {isEditing ? 'Edit Construction Site' : 'Add New Site'}
                                 </Text>
-                                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                    <Ionicons name="close-circle" size={30} color="#ccc" />
+                                <TouchableOpacity
+                                    onPress={() => setModalVisible(false)}
+                                    className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center"
+                                >
+                                    <Ionicons name="close" size={20} color="#1A1A1A" />
                                 </TouchableOpacity>
                             </View>
 
                             <ScrollView
                                 showsVerticalScrollIndicator={false}
-                                contentContainerStyle={{ paddingBottom: 100 }}
+                                contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 20, 32) }}
+                                keyboardShouldPersistTaps="handled"
                             >
                                 <Input
                                     label="Site Name"
-                                    placeholder="e.g. City Center Mall"
+                                    placeholder="e.g. City Center Mall - Phase 2"
                                     value={siteName}
                                     onChangeText={setSiteName}
-                                    containerClassName="mb-4"
+                                    containerClassName="mb-3"
                                 />
 
-                                <View className="flex-row gap-4">
+                                <View className="flex-row gap-3">
                                     <View className="flex-1">
                                         <Input
                                             label="Latitude"
-                                            placeholder="18.5204"
+                                            placeholder="e.g. 18.5204"
                                             keyboardType="numeric"
                                             value={siteLat}
                                             onChangeText={setSiteLat}
-                                            containerClassName="mb-4"
+                                            containerClassName="mb-3"
                                         />
                                     </View>
                                     <View className="flex-1">
                                         <Input
                                             label="Longitude"
-                                            placeholder="73.8567"
+                                            placeholder="e.g. 73.8567"
                                             keyboardType="numeric"
                                             value={siteLong}
                                             onChangeText={setSiteLong}
-                                            containerClassName="mb-4"
+                                            containerClassName="mb-3"
                                         />
                                     </View>
                                 </View>
 
-                                <TouchableOpacity
-                                    onPress={handleGetCurrentLocation}
-                                    className="mb-4 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-row items-center justify-center gap-2"
-                                    disabled={isLocating}
-                                >
-                                    {isLocating ? (
-                                        <ActivityIndicator size="small" color="#1A1A1A" />
-                                    ) : (
-                                        <Ionicons name="location" size={20} color="#FFD700" />
-                                    )}
-                                    <Text className="text-secondary font-bold">
-                                        {isLocating ? 'Fetching...' : 'Get Current Location'}
-                                    </Text>
-                                </TouchableOpacity>
+                                {/* Location Picker Buttons */}
+                                <View className="flex-row gap-3 mb-3">
+                                    <TouchableOpacity
+                                        onPress={handleGetCurrentLocation}
+                                        className="flex-1 bg-yellow-50 p-3.5 rounded-xl border border-yellow-200 flex-row items-center justify-center gap-1.5"
+                                        disabled={isLocating}
+                                    >
+                                        {isLocating ? (
+                                            <ActivityIndicator size="small" color="#1A1A1A" />
+                                        ) : (
+                                            <Ionicons name="locate" size={18} color="#1A1A1A" />
+                                        )}
+                                        <Text className="text-secondary font-bold text-xs">
+                                            {isLocating ? 'Locating...' : 'Use My GPS'}
+                                        </Text>
+                                    </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => setShowMapPicker(true)} className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-row items-center justify-center gap-2">
-                                    <Ionicons name="map" size={20} color="#1A1A1A" />
-                                    <Text className="text-secondary font-bold">Pick on Map</Text>
-                                </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setShowMapPicker(true)}
+                                        className="flex-1 bg-gray-100 p-3.5 rounded-xl border border-gray-200 flex-row items-center justify-center gap-1.5"
+                                    >
+                                        <Ionicons name="map" size={18} color="#1A1A1A" />
+                                        <Text className="text-secondary font-bold text-xs">Pick on Map</Text>
+                                    </TouchableOpacity>
+                                </View>
 
                                 <Input
                                     label="Geofence Radius (meters)"
-                                    placeholder="e.g. 500"
+                                    placeholder="e.g. 150"
                                     keyboardType="numeric"
                                     value={siteRadius}
                                     onChangeText={setSiteRadius}
-                                    containerClassName="mb-4"
+                                    containerClassName="mb-3"
                                 />
 
-                                <View className="flex-row gap-4">
+                                <View className="flex-row gap-3 mb-2">
                                     <View className="flex-1">
                                         <Input
                                             label="Shift Start (HH:MM)"
                                             placeholder="09:00"
                                             value={shiftStart}
                                             onChangeText={setShiftStart}
-                                            containerClassName="mb-4"
+                                            containerClassName="mb-3"
                                         />
                                     </View>
                                     <View className="flex-1">
                                         <Input
-                                            label="Buffer (Mins)"
+                                            label="Grace Buffer (Mins)"
                                             placeholder="30"
                                             keyboardType="numeric"
                                             value={bufferProps}
                                             onChangeText={setBufferProps}
-                                            containerClassName="mb-4"
+                                            containerClassName="mb-3"
                                         />
                                     </View>
                                 </View>
 
                                 <Button
-                                    title={isEditing ? "Update Site" : "Create Site"}
+                                    title={isEditing ? "Update Site" : "Save Construction Site"}
                                     onPress={handleSaveSite}
                                     isLoading={isSaving}
-                                    className="mb-8"
+                                    className="mt-2"
                                 />
                             </ScrollView>
                         </View>
@@ -402,12 +429,18 @@ export default function SitesManagement() {
                 onRequestClose={() => setShowMapPicker(false)}
             >
                 <View className="flex-1 bg-white">
-                    <View className="absolute top-10 left-4 z-10 w-full flex-row justify-between pr-8">
-                        <TouchableOpacity onPress={() => setShowMapPicker(false)} className="bg-white p-2 rounded-full shadow-md">
-                            <Ionicons name="close" size={24} color="#1A1A1A" />
+                    <View
+                        style={{ top: Math.max(insets.top + 8, 16) }}
+                        className="absolute left-4 right-4 z-10 flex-row justify-between items-center"
+                    >
+                        <TouchableOpacity
+                            onPress={() => setShowMapPicker(false)}
+                            className="bg-white w-10 h-10 rounded-full items-center justify-center shadow-lg border border-gray-200"
+                        >
+                            <Ionicons name="close" size={22} color="#1A1A1A" />
                         </TouchableOpacity>
-                        <View className="bg-white px-4 py-2 rounded-full shadow-md">
-                            <Text className="font-bold text-secondary">Tap to Select Location</Text>
+                        <View className="bg-white/95 px-4 py-2 rounded-full shadow-lg border border-gray-200">
+                            <Text className="font-extrabold text-secondary text-xs">Tap Map to Position Pin</Text>
                         </View>
                     </View>
 
@@ -419,14 +452,17 @@ export default function SitesManagement() {
                         {(tempCoords || (siteLat && siteLong)) && (
                             <Marker
                                 coordinate={tempCoords ? { latitude: tempCoords.lat, longitude: tempCoords.long } : { latitude: parseFloat(siteLat), longitude: parseFloat(siteLong) }}
-                                title="Selected Location"
+                                title="Selected Site Pin"
                             />
                         )}
                     </MapView>
 
-                    <View className="absolute bottom-10 w-full px-6">
+                    <View
+                        style={{ bottom: Math.max(insets.bottom + 16, 24) }}
+                        className="absolute w-full px-6"
+                    >
                         <Button
-                            title="Confirm Location"
+                            title="Confirm Map Location"
                             onPress={confirmMapSelection}
                             disabled={!tempCoords}
                         />

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, Alert, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ActivityIndicator, Alert, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/Button';
 
@@ -26,6 +27,7 @@ const deg2rad = (deg: number) => {
 
 export default function SiteCheckScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     // Get Site Details from Navigation Params
     const params = useLocalSearchParams();
@@ -115,87 +117,129 @@ export default function SiteCheckScreen() {
 
     return (
         <View className="flex-1 bg-white">
-            {/* Map Area */}
-            <MapView
-                style={{ width: Dimensions.get('window').width, height: '65%' }}
-                initialRegion={{
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                    latitudeDelta: 0.005,
-                    longitudeDelta: 0.005,
-                }}
-                showsUserLocation={true}
-                followsUserLocation={true}
+            {/* Top Back Button Floating on Map */}
+            <View
+                style={{ top: Math.max(insets.top + 8, 16) }}
+                className="absolute left-4 z-20 flex-row items-center"
             >
-                {/* Site Marker & Geo-fence */}
-                <Marker
-                    coordinate={siteCoordinate}
-                    title={siteName}
-                    description={`Radius: ${siteRadius}m`}
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    className="w-11 h-11 bg-white rounded-full items-center justify-center shadow-lg border border-gray-200"
                 >
-                    <View className="items-center">
-                        <Ionicons name="construct" size={30} color="#D50000" />
-                        <View className="bg-white px-2 rounded-md border border-gray-300">
-                            <Text className="text-xs font-bold">{siteName}</Text>
-                        </View>
-                    </View>
-                </Marker>
-                <Circle
-                    center={siteCoordinate}
-                    radius={siteRadius}
-                    fillColor={isWithinRange ? "rgba(76, 175, 80, 0.2)" : "rgba(211, 47, 47, 0.2)"} // Green if in range, Red if out
-                    strokeColor={isWithinRange ? "rgba(76, 175, 80, 0.8)" : "rgba(211, 47, 47, 0.8)"}
-                    strokeWidth={2}
-                />
-            </MapView>
-
-            {/* Bottom Status Panel */}
-            <View className="flex-1 bg-white -mt-6 rounded-t-[30px] px-8 pt-8 shadow-2xl">
-                <View className="flex-row items-center justify-between mb-2">
-                    <Text className="text-secondary/50 font-bold uppercase tracking-widest text-xs">Distance to Site</Text>
-                    {isWithinRange ? (
-                        <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
-                            <Ionicons name="checkmark-circle" size={16} color="green" />
-                            <Text className="text-success text-xs font-bold ml-1">In Range</Text>
-                        </View>
-                    ) : (
-                        <View className="flex-row items-center bg-red-100 px-3 py-1 rounded-full">
-                            <Ionicons name="warning" size={16} color="red" />
-                            <Text className="text-danger text-xs font-bold ml-1">Too Far</Text>
-                        </View>
-                    )}
+                    <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
+                </TouchableOpacity>
+                <View className="ml-3 bg-white/95 px-3.5 py-1.5 rounded-full shadow-md border border-gray-100">
+                    <Text className="text-secondary font-bold text-xs" numberOfLines={1}>{siteName}</Text>
                 </View>
+            </View>
 
-                <Text className="text-4xl font-extrabold text-secondary mb-1">
-                    {distance ? Math.round(distance) : '---'} <Text className="text-lg text-secondary/60">meters</Text>
-                </Text>
-                <Text className="text-secondary/60 font-medium mb-8">
-                    You must be within {siteRadius}m of <Text className="font-bold text-secondary">{siteName}</Text> to mark attendance.
-                </Text>
-
-                <Button
-                    title={isWithinRange ? "Take Selfie & Verify" : "Move Closer to Site"}
-                    onPress={() => {
-                        if (isWithinRange) {
-                            Alert.alert("Success", "Location Verified! Opening Camera...");
-                            router.push({
-                                pathname: '/worker/camera',
-                                params: { siteId, siteName, lat: location.coords.latitude, long: location.coords.longitude }
-                            });
-                        } else {
-                            Alert.alert("Access Denied", "You are too far from the site location.");
-                        }
+            {/* Responsive Map Area */}
+            <View style={{ height: Dimensions.get('window').height * 0.48 }}>
+                <MapView
+                    style={{ width: '100%', height: '100%' }}
+                    initialRegion={{
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                        latitudeDelta: 0.005,
+                        longitudeDelta: 0.005,
                     }}
-                    variant={isWithinRange ? "primary" : "secondary"}
-                    disabled={!isWithinRange}
-                    className={!isWithinRange ? "opacity-50" : ""}
-                />
+                    showsUserLocation={true}
+                    followsUserLocation={true}
+                >
+                    {/* Site Marker & Geo-fence */}
+                    <Marker
+                        coordinate={siteCoordinate}
+                        title={siteName}
+                        description={`Radius: ${siteRadius}m`}
+                    >
+                        <View className="items-center">
+                            <Ionicons name="construct" size={28} color="#D50000" />
+                            <View className="bg-white px-2 py-0.5 rounded-md border border-gray-300 shadow-sm">
+                                <Text className="text-[10px] font-extrabold text-secondary">{siteName}</Text>
+                            </View>
+                        </View>
+                    </Marker>
+                    <Circle
+                        center={siteCoordinate}
+                        radius={siteRadius}
+                        fillColor={isWithinRange ? "rgba(0, 200, 83, 0.25)" : "rgba(213, 0, 0, 0.25)"}
+                        strokeColor={isWithinRange ? "rgba(0, 200, 83, 0.9)" : "rgba(213, 0, 0, 0.9)"}
+                        strokeWidth={2}
+                    />
+                </MapView>
+            </View>
 
-                {!isWithinRange && (
-                    <TouchableOpacity onPress={() => router.back()} className="mt-4 items-center">
-                        <Text className="text-secondary/50 font-medium">Cancel</Text>
-                    </TouchableOpacity>
-                )}
+            {/* Bottom Status Panel with ScrollView for Complete Responsiveness */}
+            <View className="flex-1 bg-white -mt-6 rounded-t-[32px] shadow-2xl border-t border-gray-100 overflow-hidden">
+                <ScrollView
+                    contentContainerStyle={{
+                        paddingHorizontal: 24,
+                        paddingTop: 24,
+                        paddingBottom: insets.bottom + 24,
+                        flexGrow: 1,
+                        justifyContent: 'space-between',
+                    }}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View>
+                        {/* Status Row */}
+                        <View className="flex-row items-center justify-between mb-3">
+                            <Text className="text-secondary/70 font-bold uppercase tracking-wider text-xs">
+                                Geofence Status
+                            </Text>
+                            {isWithinRange ? (
+                                <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full border border-green-200">
+                                    <Ionicons name="checkmark-circle" size={16} color="#00C853" />
+                                    <Text className="text-success text-xs font-extrabold ml-1.5">In Site Range</Text>
+                                </View>
+                            ) : (
+                                <View className="flex-row items-center bg-red-100 px-3 py-1 rounded-full border border-red-200">
+                                    <Ionicons name="warning" size={16} color="#D50000" />
+                                    <Text className="text-danger text-xs font-extrabold ml-1.5">Outside Boundary</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Distance Meter */}
+                        <View className="flex-row items-baseline gap-2 mb-2">
+                            <Text className="text-4xl font-extrabold text-secondary tracking-tight">
+                                {distance !== null ? Math.round(distance) : '---'}
+                            </Text>
+                            <Text className="text-base text-secondary/70 font-bold">meters from site center</Text>
+                        </View>
+
+                        <Text className="text-secondary/70 text-xs font-medium leading-relaxed mb-6">
+                            You must be within <Text className="font-bold text-secondary">{siteRadius}m</Text> radius of <Text className="font-bold text-secondary">{siteName}</Text> to verify attendance.
+                        </Text>
+                    </View>
+
+                    {/* Actions */}
+                    <View className="pt-2">
+                        <Button
+                            title={isWithinRange ? "Take Selfie & Verify" : "Move Closer to Site"}
+                            onPress={() => {
+                                if (isWithinRange) {
+                                    router.push({
+                                        pathname: '/worker/camera',
+                                        params: { siteId, siteName, lat: location.coords.latitude, long: location.coords.longitude }
+                                    });
+                                } else {
+                                    Alert.alert("Access Denied", "You are outside the verified site geofence.");
+                                }
+                            }}
+                            variant={isWithinRange ? "primary" : "secondary"}
+                            disabled={!isWithinRange}
+                            className={!isWithinRange ? "opacity-60" : ""}
+                        />
+
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            className="mt-3.5 py-2 items-center"
+                        >
+                            <Text className="text-secondary/70 font-bold text-sm">Cancel & Return</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
             </View>
         </View>
     );

@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/Button';
 import { api } from '../services/api';
@@ -9,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function CameraScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { user } = useAuth();
 
     // Params from Site Check
@@ -117,16 +119,33 @@ export default function CameraScreen() {
         return (
             <View className="flex-1 bg-black items-center justify-center">
                 <Image source={{ uri: photo }} className="flex-1 w-full" resizeMode="contain" />
-                <View className="absolute bottom-0 w-full bg-white/10 p-8 rounded-t-[30px] backdrop-blur-md">
-                    <Text className="text-white text-center font-bold text-lg mb-6">Confirm Selfie?</Text>
+                <View
+                    style={{ paddingBottom: Math.max(insets.bottom + 20, 32) }}
+                    className="absolute bottom-0 w-full bg-secondary/90 px-6 pt-6 rounded-t-[32px] border-t border-white/20"
+                >
+                    <Text className="text-white text-center font-extrabold text-xl mb-4">Confirm Photo Proof?</Text>
                     {isLate && (
-                        <View className="mb-6 bg-yellow-500/20 p-4 rounded-xl border border-yellow-500/50 items-center">
-                            <Text className="text-yellow-400 font-bold">⚠️ You are marking late (After 9:30 AM)</Text>
+                        <View className="mb-5 bg-amber-500/20 px-4 py-3 rounded-xl border border-amber-400/50 flex-row items-center gap-2">
+                            <Ionicons name="warning" size={18} color="#FBBF24" />
+                            <Text className="text-amber-300 font-bold text-xs flex-1">
+                                Flagged: Marking after 09:30 AM (Late arrival)
+                            </Text>
                         </View>
                     )}
-                    <View className="flex-row gap-4">
-                        <Button title="Retake" variant="outline" onPress={() => setPhoto(null)} className="flex-1 border-white" />
-                        <Button title="Submit" onPress={confirmAttendance} isLoading={isProcessing} className="flex-1" />
+                    <View className="flex-row gap-3">
+                        <Button
+                            title="Retake"
+                            variant="outline"
+                            onPress={() => setPhoto(null)}
+                            className="flex-1 border-white/60 bg-white/10"
+                            textClassName="text-white font-extrabold"
+                        />
+                        <Button
+                            title="Submit Proof"
+                            onPress={confirmAttendance}
+                            isLoading={isProcessing}
+                            className="flex-1"
+                        />
                     </View>
                 </View>
             </View>
@@ -136,18 +155,46 @@ export default function CameraScreen() {
     return (
         <View className="flex-1 bg-black">
             <CameraView style={{ flex: 1 }} facing={facing} ref={cameraRef}>
-                <View className="flex-1 items-center justify-center">
-                    <View className="w-64 h-80 border-4 border-primary/50 rounded-full bg-transparent" />
-                    <Text className="text-white/80 bg-black/50 px-4 py-1 rounded-full mt-4 font-medium">Align your face</Text>
-                </View>
-                <View className="absolute bottom-0 w-full p-8 flex-row items-center justify-between bg-black/40">
-                    <TouchableOpacity onPress={() => router.back()} className="w-12 h-12 items-center justify-center rounded-full bg-white/20">
+                {/* Top Cancel Bar */}
+                <View
+                    style={{ top: Math.max(insets.top + 8, 16) }}
+                    className="absolute left-4 z-20"
+                >
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-11 h-11 bg-black/60 rounded-full items-center justify-center border border-white/20"
+                    >
                         <Ionicons name="close" size={24} color="white" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={takePicture} className="w-20 h-20 rounded-full bg-white items-center justify-center border-4 border-gray-300">
-                        <View className="w-16 h-16 rounded-full bg-primary border-2 border-white" />
+                </View>
+
+                {/* Face Oval Guide */}
+                <View className="flex-1 items-center justify-center">
+                    <View className="w-64 h-80 border-4 border-primary/70 rounded-full bg-transparent" />
+                    <View className="bg-black/70 px-4 py-1.5 rounded-full mt-4 border border-white/20">
+                        <Text className="text-white font-bold text-xs">Position your face inside the oval</Text>
+                    </View>
+                </View>
+
+                {/* Bottom Shutter Controls */}
+                <View
+                    style={{ paddingBottom: Math.max(insets.bottom + 20, 32) }}
+                    className="absolute bottom-0 w-full px-8 pt-6 flex-row items-center justify-between bg-black/60 border-t border-white/10"
+                >
+                    <View className="w-12 h-12" />
+                    <TouchableOpacity
+                        onPress={takePicture}
+                        activeOpacity={0.8}
+                        className="w-20 h-20 rounded-full bg-white items-center justify-center border-4 border-gray-300 shadow-xl"
+                    >
+                        <View className="w-16 h-16 rounded-full bg-primary border-2 border-white items-center justify-center">
+                            <Ionicons name="camera" size={26} color="#1A1A1A" />
+                        </View>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setFacing(c => (c === 'back' ? 'front' : 'back'))} className="w-12 h-12 items-center justify-center rounded-full bg-white/20">
+                    <TouchableOpacity
+                        onPress={() => setFacing(c => (c === 'back' ? 'front' : 'back'))}
+                        className="w-12 h-12 items-center justify-center rounded-full bg-white/20 border border-white/20"
+                    >
                         <Ionicons name="camera-reverse" size={24} color="white" />
                     </TouchableOpacity>
                 </View>

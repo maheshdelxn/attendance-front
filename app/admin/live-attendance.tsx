@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, Modal, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, Modal, RefreshControl, ScrollView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../services/api';
 
 export default function LiveAttendance() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [selectedProof, setSelectedProof] = useState<any>(null);
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -77,17 +79,23 @@ export default function LiveAttendance() {
 
     return (
         <View className="flex-1 bg-background">
-            {/* Header */}
-            <View className="bg-white px-6 pt-16 pb-4 border-b border-gray-100 flex-row justify-between items-center z-10">
+            {/* Header with Safe Area Insets */}
+            <View
+                style={{ paddingTop: Math.max(insets.top + 12, 20) }}
+                className="bg-white px-6 pb-4 border-b border-gray-200 flex-row justify-between items-center z-10 shadow-sm"
+            >
                 <View className="flex-row items-center gap-3">
-                    <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
-                        <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center border border-gray-200"
+                    >
+                        <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
                     </TouchableOpacity>
-                    <Text className="text-secondary text-2xl font-bold">Live Activity</Text>
+                    <Text className="text-secondary text-2xl font-extrabold">Live Activity</Text>
                 </View>
-                <View className="flex-row items-center gap-1 bg-green-100 px-3 py-1 rounded-full">
-                    <View className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                    <Text className="text-success text-xs font-bold">Live</Text>
+                <View className="flex-row items-center gap-1.5 bg-green-100 px-3 py-1 rounded-full border border-green-200">
+                    <View className="w-2.5 h-2.5 bg-success rounded-full animate-pulse" />
+                    <Text className="text-success text-xs font-extrabold">LIVE</Text>
                 </View>
             </View>
 
@@ -95,18 +103,25 @@ export default function LiveAttendance() {
             <FlatList
                 data={logs}
                 renderItem={renderLogItem}
-                keyExtractor={item => item._id}
-                contentContainerStyle={{ padding: 24, paddingBottom: 100 }}
+                keyExtractor={item => item._id || item.id}
+                contentContainerStyle={{
+                    padding: 20,
+                    paddingBottom: insets.bottom + 40,
+                }}
                 showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1A1A1A"]} />}
                 ListHeaderComponent={
-                    <Text className="text-secondary/40 text-xs font-bold uppercase mb-6 tracking-widest">Today, {dateStr}</Text>
+                    <Text className="text-secondary/70 text-xs font-extrabold uppercase mb-5 tracking-wider">
+                        Today's Attendance Timeline • {dateStr}
+                    </Text>
                 }
                 ListEmptyComponent={
                     loading ? null : (
-                        <View className="items-center justify-center mt-20">
-                            <Ionicons name="calendar-outline" size={48} color="#CCC" />
-                            <Text className="text-secondary/40 mt-2 font-medium">No activity recorded yet today.</Text>
+                        <View className="items-center justify-center mt-20 p-8">
+                            <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
+                            <Text className="text-secondary/60 mt-3 font-semibold text-center">
+                                No attendance records logged yet today.
+                            </Text>
                         </View>
                     )
                 }
@@ -122,36 +137,53 @@ export default function LiveAttendance() {
                 <TouchableOpacity
                     activeOpacity={1}
                     onPress={() => setSelectedProof(null)}
-                    className="flex-1 bg-black/90 items-center justify-center p-8"
+                    className="flex-1 bg-black/85 items-center justify-center p-6"
                 >
                     {selectedProof && (
-                        <View className="bg-white p-4 rounded-2xl w-full">
-                            <View className="flex-row justify-between items-center mb-4">
-                                <View>
-                                    <Text className="text-secondary font-bold text-lg">{selectedProof.user?.name}</Text>
-                                    <Text className="text-secondary/60 text-xs">
-                                        {new Date(selectedProof.checkInTime).toLocaleTimeString()} • {selectedProof.site?.name}
+                        <View
+                            onStartShouldSetResponder={() => true}
+                            className="bg-white p-5 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100"
+                        >
+                            <View className="flex-row justify-between items-start mb-4">
+                                <View className="flex-1 mr-2">
+                                    <Text className="text-secondary font-extrabold text-lg" numberOfLines={1}>
+                                        {selectedProof.user?.name || 'Worker'}
+                                    </Text>
+                                    <Text className="text-secondary/70 text-xs font-semibold">
+                                        {new Date(selectedProof.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {selectedProof.site?.name || 'On Site'}
                                     </Text>
                                 </View>
-                                <TouchableOpacity onPress={() => setSelectedProof(null)}>
-                                    <Ionicons name="close" size={24} color="#1A1A1A" />
+                                <TouchableOpacity
+                                    onPress={() => setSelectedProof(null)}
+                                    className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center"
+                                >
+                                    <Ionicons name="close" size={20} color="#1A1A1A" />
                                 </TouchableOpacity>
                             </View>
 
-                            <View className="h-64 bg-gray-200 rounded-xl items-center justify-center mb-4 overflow-hidden">
+                            <View
+                                style={{ height: Math.min(Dimensions.get('window').height * 0.35, 260) }}
+                                className="bg-gray-100 rounded-2xl items-center justify-center mb-4 overflow-hidden border border-gray-200"
+                            >
                                 {selectedProof.checkInPhoto ? (
-                                    <Image source={{ uri: selectedProof.checkInPhoto }} className="w-full h-full" resizeMode="cover" />
+                                    <Image
+                                        source={{ uri: selectedProof.checkInPhoto }}
+                                        className="w-full h-full"
+                                        resizeMode="cover"
+                                    />
                                 ) : (
-                                    <>
-                                        <Ionicons name="person" size={64} color="#999" />
-                                        <Text className="text-gray-400 text-xs mt-2">No Photo Available</Text>
-                                    </>
+                                    <View className="items-center">
+                                        <Ionicons name="person" size={56} color="#9CA3AF" />
+                                        <Text className="text-gray-500 text-xs font-semibold mt-2">No Photo Attached</Text>
+                                    </View>
                                 )}
                             </View>
 
-                            <View className="flex-row items-center gap-2 bg-green-50 p-3 rounded-lg border border-green-100">
-                                <Ionicons name="checkmark-circle" size={20} color="green" />
-                                <Text className="text-success font-medium text-sm">Location Verified: Inside Geofence range.</Text>
+                            <View className="flex-row items-center gap-2 bg-green-50 p-3 rounded-xl border border-green-200">
+                                <Ionicons name="checkmark-circle" size={18} color="#00C853" />
+                                <Text className="text-green-800 font-bold text-xs flex-1">
+                                    Location Verified: Inside Geofence radius.
+                                </Text>
                             </View>
                         </View>
                     )}

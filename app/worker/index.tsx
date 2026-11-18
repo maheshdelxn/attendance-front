@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../services/api';
 
 export default function WorkerHome() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { user, logout } = useAuth();
     const [sites, setSites] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -101,145 +103,192 @@ export default function WorkerHome() {
     };
 
     return (
-        <View className="flex-1 bg-background pt-12">
+        <View className="flex-1 bg-background">
             <ScrollView
-                contentContainerStyle={{ padding: 24 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                contentContainerStyle={{
+                    paddingTop: Math.max(insets.top + 16, 24),
+                    paddingBottom: insets.bottom + 40,
+                    paddingHorizontal: 20,
+                }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#1A1A1A"]} />}
+                showsVerticalScrollIndicator={false}
             >
                 {/* Header */}
-                <View className="flex-row justify-between items-center mb-8">
-                    <View>
-                        <Text className="text-secondary text-lg font-bold">Hello, {user?.name || 'Worker'}</Text>
-                        <Text className="text-secondary/60 text-sm">
-                            {selectedSite ? `Site: ${selectedSite.name}` : 'Select a Site'}
+                <View className="flex-row justify-between items-center mb-6">
+                    <View className="flex-1 mr-3">
+                        <Text className="text-secondary text-xl font-extrabold" numberOfLines={1}>
+                            Hello, {user?.name || 'Worker'}
+                        </Text>
+                        <Text className="text-secondary/70 text-xs font-semibold mt-0.5" numberOfLines={1}>
+                            {selectedSite ? `Assigned: ${selectedSite.name}` : 'Select a Site Below'}
                         </Text>
                     </View>
-                    <View className="flex-row items-center gap-3">
-                        <TouchableOpacity onPress={onRefresh} className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-200">
-                            <Ionicons name="refresh" size={20} color="#1A1A1A" />
+                    <View className="flex-row items-center gap-2">
+                        {/* Offline Mode Shortcut */}
+                        <TouchableOpacity
+                            onPress={() => router.push('/worker/offline-attendance')}
+                            className="px-2.5 py-2 bg-yellow-100 rounded-xl items-center justify-center border border-yellow-300 flex-row gap-1"
+                        >
+                            <Ionicons name="cloud-offline" size={16} color="#1A1A1A" />
+                            <Text className="text-secondary font-bold text-[11px]">Offline</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={onRefresh}
+                            className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-200 shadow-sm"
+                        >
+                            <Ionicons name="refresh" size={18} color="#1A1A1A" />
                         </TouchableOpacity>
                         <TouchableOpacity
                             onPress={handleLogout}
-                            className="w-10 h-10 bg-red-50 rounded-full items-center justify-center border border-red-100"
+                            className="w-10 h-10 bg-red-50 rounded-full items-center justify-center border border-red-200"
                         >
-                            <Ionicons name="log-out-outline" size={20} color="#FF6B6B" />
+                            <Ionicons name="log-out-outline" size={18} color="#D50000" />
                         </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* Date Display */}
-                <Text className="text-secondary/40 font-medium uppercase tracking-widest mb-2 text-xs">Today</Text>
-                <Text className="text-secondary text-2xl font-bold mb-8">{date}</Text>
+                <View className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                    <Text className="text-secondary/60 font-bold uppercase tracking-widest text-[11px] mb-1">Current Shift Date</Text>
+                    <Text className="text-secondary text-xl font-extrabold">{date}</Text>
+                </View>
 
-                {/* Status Card */}
+                {/* Today Status Card */}
                 {status?.punchedIn && (
-                    <View className="bg-green-100 p-4 rounded-xl border border-green-200 mb-8 flex-row items-center gap-4">
-                        <View className="bg-green-500 w-10 h-10 rounded-full items-center justify-center">
-                            <Ionicons name="checkmark" size={24} color="white" />
+                    <View className="bg-green-50 p-4 rounded-2xl border border-green-200 mb-6 flex-row items-center gap-3">
+                        <View className="bg-green-600 w-10 h-10 rounded-full items-center justify-center">
+                            <Ionicons name="checkmark" size={22} color="white" />
                         </View>
-                        <View>
-                            <Text className="text-success font-bold text-lg">Punched In</Text>
-                            <Text className="text-secondary/60 text-sm">at {new Date(status.checkInTime).toLocaleTimeString()}</Text>
+                        <View className="flex-1">
+                            <Text className="text-success font-extrabold text-base">Punched In Today</Text>
+                            <Text className="text-secondary/80 text-xs font-semibold">
+                                Checked in at {new Date(status.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
                         </View>
                     </View>
                 )}
 
                 {/* Site Selector */}
-                <Text className="text-secondary font-bold text-lg mb-4">Select Work Site</Text>
+                <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-secondary font-extrabold text-base">Select Work Site</Text>
+                    <Text className="text-secondary/60 text-xs font-semibold">
+                        {sites.length} {sites.length === 1 ? 'Site' : 'Sites'} Available
+                    </Text>
+                </View>
+
                 {loading ? (
-                    <ActivityIndicator size="large" color="#FFD700" className="my-8" />
+                    <ActivityIndicator size="large" color="#FFD700" className="my-6" />
                 ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
                         {sites.length > 0 ? (
-                            sites.map((site) => (
-                                <TouchableOpacity
-                                    key={site._id}
-                                    onPress={() => setSelectedSite(site)}
-                                    className={`mr-4 p-4 rounded-2xl border ${selectedSite?._id === site._id ? 'bg-secondary border-secondary' : 'bg-white border-gray-100'} w-40`}
-                                >
-                                    <Text className={`font-bold ${selectedSite?._id === site._id ? 'text-primary' : 'text-secondary'}`}>{site.name}</Text>
-                                    <Text className={`text-xs mt-1 ${selectedSite?._id === site._id ? 'text-gray-400' : 'text-gray-500'}`}>
-                                        Radius: {site.radius}m
-                                    </Text>
-                                </TouchableOpacity>
-                            ))
+                            sites.map((site) => {
+                                const isSelected = selectedSite?._id === site._id || selectedSite?.id === site.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={site._id || site.id}
+                                        onPress={() => setSelectedSite(site)}
+                                        className={`mr-3 p-4 rounded-2xl border ${isSelected ? 'bg-secondary border-secondary shadow-md' : 'bg-white border-gray-200 shadow-sm'} w-44`}
+                                    >
+                                        <Text className={`font-bold text-base ${isSelected ? 'text-primary' : 'text-secondary'}`} numberOfLines={1}>
+                                            {site.name}
+                                        </Text>
+                                        <View className="flex-row items-center gap-1 mt-1.5">
+                                            <Ionicons name="locate-outline" size={12} color={isSelected ? '#FFD700' : '#4B5563'} />
+                                            <Text className={`text-xs font-semibold ${isSelected ? 'text-gray-200' : 'text-gray-600'}`}>
+                                                Radius: {site.radius || 100}m
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })
                         ) : (
-                            <Text className="text-secondary/40">No sites available.</Text>
+                            <View className="bg-white p-4 rounded-xl border border-gray-200 w-full">
+                                <Text className="text-secondary/70 font-semibold text-sm">No construction sites assigned yet.</Text>
+                            </View>
                         )}
                     </ScrollView>
                 )}
 
                 {/* Attendance History Section */}
-                <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-secondary font-bold text-lg">Your Attendance Track</Text>
-                    <View className="bg-blue-100 px-2 py-0.5 rounded-full">
-                        <Text className="text-blue-600 text-[10px] font-bold uppercase">{history.length} Days</Text>
+                <View className="flex-row items-center justify-between mb-3">
+                    <Text className="text-secondary font-extrabold text-base">Your Recent Activity</Text>
+                    <View className="bg-blue-100 px-2.5 py-0.5 rounded-full">
+                        <Text className="text-blue-700 text-xs font-bold">{history.length} Punches</Text>
                     </View>
                 </View>
 
-                <View className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-12">
+                <View className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-8">
                     {history.length > 0 ? (
-                        history.map((record: any, index: number) => (
+                        history.slice(0, 5).map((record: any, index: number) => (
                             <View
-                                key={record._id}
-                                className={`p-4 flex-row justify-between items-center ${index !== history.length - 1 ? 'border-b border-gray-50' : ''}`}
+                                key={record._id || index}
+                                className={`p-4 flex-row justify-between items-center ${index !== Math.min(history.length, 5) - 1 ? 'border-b border-gray-100' : ''}`}
                             >
                                 <View className="flex-row items-center gap-3">
-                                    <View className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center border border-gray-100">
-                                        <Ionicons name="calendar-outline" size={18} color="#1A1A1A" />
+                                    <View className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center border border-gray-200">
+                                        <Ionicons name="calendar" size={16} color="#1A1A1A" />
                                     </View>
                                     <View>
                                         <Text className="text-secondary font-bold text-sm">
-                                            {new Date(record.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                            {new Date(record.date || record.checkInTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                         </Text>
-                                        <Text className="text-secondary/40 text-[10px]">{record.site?.name || 'Unknown Site'}</Text>
+                                        <Text className="text-secondary/70 text-xs font-medium">{record.site?.name || 'On Site'}</Text>
                                     </View>
                                 </View>
                                 <View className="items-end">
                                     <Text className="text-secondary font-bold text-sm">
                                         {new Date(record.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </Text>
-                                    <Text className="text-success text-[10px] font-bold uppercase">Punched In</Text>
+                                    <Text className="text-success text-[10px] font-extrabold uppercase">Verified</Text>
                                 </View>
                             </View>
                         ))
                     ) : (
-                        <View className="p-8 items-center">
-                            <Ionicons name="time-outline" size={32} color="#CCC" />
-                            <Text className="text-secondary/40 text-xs mt-2 text-center">No attendance history found yet.</Text>
+                        <View className="p-8 items-center justify-center">
+                            <Ionicons name="time-outline" size={32} color="#9CA3AF" />
+                            <Text className="text-secondary/60 text-xs font-semibold mt-2 text-center">
+                                No past attendance records found this month.
+                            </Text>
                         </View>
                     )}
                 </View>
 
-                {/* Main Action */}
-                <View className="items-center mb-12">
+                {/* Main Punch Action Button */}
+                <View className="items-center pb-8">
                     <TouchableOpacity
                         onPress={handlePunchIn}
                         disabled={!selectedSite || !!status?.punchedIn}
-                        className={`w-48 h-48 rounded-full items-center justify-center shadow-xl border-8 border-white ${(!selectedSite || !!status?.punchedIn) ? 'bg-gray-300' : 'bg-primary'}`}
-                        style={{ shadowColor: (!selectedSite || !!status?.punchedIn) ? '#999' : '#FFD700', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }}
+                        activeOpacity={0.85}
+                        className={`w-44 h-44 rounded-full items-center justify-center shadow-xl border-4 border-white ${(!selectedSite || !!status?.punchedIn) ? 'bg-gray-300' : 'bg-primary'}`}
+                        style={{
+                            shadowColor: (!selectedSite || !!status?.punchedIn) ? '#000' : '#FFD700',
+                            shadowOffset: { width: 0, height: 8 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 16,
+                            elevation: 8,
+                        }}
                     >
                         {status?.punchedIn ? (
-                            <Ionicons name="checkmark-done" size={48} color="#4CAF50" />
+                            <Ionicons name="checkmark-done" size={44} color="#00C853" />
                         ) : (
-                            <Ionicons name="finger-print" size={48} color={!selectedSite ? '#666' : '#1A1A1A'} />
+                            <Ionicons name="finger-print" size={44} color={!selectedSite ? '#4B5563' : '#1A1A1A'} />
                         )}
-                        <Text className={`font-bold text-lg mt-2 uppercase ${(!selectedSite || !!status?.punchedIn) ? 'text-gray-500' : 'text-secondary'}`}>
+                        <Text className={`font-extrabold text-base mt-2 tracking-wider uppercase ${(!selectedSite || !!status?.punchedIn) ? 'text-gray-600' : 'text-secondary'}`}>
                             {status?.punchedIn ? 'Punched In' : 'Mark In'}
                         </Text>
                     </TouchableOpacity>
 
                     {status?.punchedIn ? (
-                        <Text className="text-success text-sm mt-6 font-bold text-center">
-                            You've completed your attendance for today!
+                        <Text className="text-success text-sm mt-4 font-bold text-center">
+                            ✓ Your attendance has been logged for today!
                         </Text>
                     ) : (
-                        <Text className="text-secondary/60 text-sm mt-6 font-medium">
-                            {selectedSite ? 'Tap to verify location & selfie' : 'Please select a site first'}
+                        <Text className="text-secondary/70 text-xs mt-4 font-bold text-center">
+                            {selectedSite ? `Selected: ${selectedSite.name} (Tap above to verify)` : '⚠️ Select a work site above to enable attendance'}
                         </Text>
                     )}
                 </View>
-
             </ScrollView>
         </View>
     );
